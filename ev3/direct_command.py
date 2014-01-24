@@ -52,7 +52,7 @@ Byte 5 - n: Response buffer (global variable values)
 """
 
 
-import EV3
+import ev3
 import message
 
 

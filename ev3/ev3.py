@@ -22,20 +22,22 @@ Prerequisites:
     The opposite action is:
     % sudo rfcomm release /dev/rfcomm0
 
-    Example usage:
-        with EV3() as ev3:
+    EXAMPLE USAGE:
+        from ev3 import *
+
+        with ev3.EV3() as brick:
             # Create DirectCommand objects and add commands to them.
             cmd = direct_command.DirectCommand()
             cmd.add_ui_draw_update()
-            cmd.send(ev3)
+            cmd.send(brick)
 
             # Call single DirectCommand functions without creating DirectCommand
             # objects each time.
-            ev3.output_stop(direct_command.OutputPort.PORT_C,
+            brick.output_stop(direct_command.OutputPort.PORT_C,
                                     direct_command.StopType.BRAKE)
 
             # Call single system_command functions.
-            ev3.write_mailbox('foo', (0,1,2,3,4,5,6,7,8,9,0))
+            brick.write_mailbox('foo', (0,1,2,3,4,5,6,7,8,9,0))
 
 """
 

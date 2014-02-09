@@ -1006,7 +1006,6 @@ class DirectCommand(object):
 
     def __init__(self):
         """Constructs a new, empty object."""
-        self._local_params_types = []
         self._global_params_types = []
 
         self._local_params_byte_count = 0
@@ -1049,7 +1048,6 @@ class DirectCommand(object):
 
             msg_len = len(_self._msg)
 
-            local_params_types_len = len(_self._local_params_types)
             global_params_types_len = len(_self._global_params_types)
 
             local_params_byte_count = _self._local_params_byte_count
@@ -1062,7 +1060,6 @@ class DirectCommand(object):
                   (MAX_LOCAL_VARIABLE_BYTES < _self._local_params_byte_count)):
                 del (_self._msg[msg_len:])
 
-                del (_self._local_params_types[local_params_types_len:])
                 del (_self._global_params_types[global_params_types_len:])
 
                 _self._local_params_byte_count = local_params_byte_count
@@ -1072,6 +1069,21 @@ class DirectCommand(object):
                                                                 'given func.')
 
         return checked_add
+
+
+    @safe_add
+    def add_timer_wait(self, milliseconds):
+        """Causes the thread to sleep for the specified number of milliseconds.
+
+        """
+        local_var_tuple = self._allocate_local_param(DataFormat.DATA32)
+
+        self._msg.append(Opcode.TIMER_WAIT)
+        self._append_local_constant(milliseconds)
+        self._append_param(*local_var_tuple)
+
+        self._msg.append(Opcode.TIMER_READY)
+        self._append_param(*local_var_tuple)
 
 
     @safe_add
@@ -2082,6 +2094,10 @@ class DirectCommand(object):
 
 
     def _append_reply_param(self, reply_format):
+        """Global parameters are stored in the tx buffer on the brick so
+        their values are returned in the message reply.
+
+        """
         data_len = None
 
         if (not isinstance(reply_format, tuple)):
@@ -2095,7 +2111,7 @@ class DirectCommand(object):
         else:
             data_len = reply_format[1]
 
-        # Use as few uint bits as possible to save space in message buffer.
+        # Use as few bits as possible to save space in message buffer.
         param_type = ParamType.GV1
         if (0xFFFF < self._global_params_byte_count):
             param_type = ParamType.GV4
@@ -2105,6 +2121,58 @@ class DirectCommand(object):
         self._append_param(self._global_params_byte_count, param_type)
         self._global_params_types.append(reply_format)
         self._global_params_byte_count += data_len
+
+
+    def _allocate_local_param(self, data_format):
+        """Local parameters are essentially stack variables so they are NOT
+        included in the reply from the brick. This function returns an index
+        that can be used to access a new local variable of the given DataFormat.
+
+        """
+        # Ensure that the alignment is correct.
+        data_len = DATA_FORMAT_LENS[data_format]
+
+        pad = (self._local_params_byte_count % data_len)
+        if (pad):
+            pad = (data_len - pad)
+            self._local_params_byte_count += pad
+
+        # Use as few bits as possible to save space in message buffer.
+        param_type = ParamType.LV1
+        if (0xFFFF < self._local_params_byte_count):
+            param_type = ParamType.LV4
+        elif (0xFF < self._local_params_byte_count):
+            param_type = ParamType.LV2
+
+        index = self._local_params_byte_count
+
+        self._local_params_byte_count += data_len
+
+        return (index, param_type)
+
+
+    def _append_local_constant(self, val):
+        """"Appends an immediate value as a local constant."""
+        param_type = None
+
+        if (isinstance(val, int)):
+            num_bits = int.bit_length(val)
+            if (num_bits > 16):
+                param_type = ParamType.LC4
+            elif (num_bits > 8):
+                param_type = ParamType.LC2
+            elif (num_bits > 6):
+                param_type = ParamType.LC1
+            else:
+                param_type = ParamType.LC0
+        elif (isinstance(val, float)):
+            param_type = ParamType.FLOAT
+        elif (isinstance(val, str)):
+            param_type = ParamType.LCS
+        else:
+            raise NotImplementedError('Unknown local constant type.')
+
+        self._append_param(val, param_type)
 
 
     def _append_param(self, val, param_type=ParamType.LC1):
@@ -2127,6 +2195,7 @@ class DirectCommand(object):
         elif (ParamType.GV0 == param_type):
             self._msg.append(ParamType.GV0 | (0x1F & val))
         elif (ParamType.FLOAT == param_type):
+            self._msg.append(ParamType.LC4)
             message.append_float(self._msg, val)
         else:
             length = PARAM_TYPE_LENS[param_type]

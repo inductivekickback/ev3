@@ -1484,7 +1484,7 @@ class DirectCommand(object):
         self._append_param(input_port)
         self._append_param(device_type)
         self._append_param(mode)
-        self._append_param(1) # Number of values?
+        self._append_param(1) # Number of values
         self._append_reply_param(DataFormat.DATA8)
 
 

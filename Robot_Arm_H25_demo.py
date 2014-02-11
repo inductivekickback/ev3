@@ -54,63 +54,71 @@ open_claw_cmd.add_output_stop(direct_command.OutputPort.PORT_D,
 raise_claw_cmd = direct_command.DirectCommand()
 raise_claw_cmd.add_output_step_speed(direct_command.OutputPort.PORT_B,
                                             -15,
-                                            10,
-                                            40,
+                                            0,
+                                            20,
                                             10,
                                             direct_command.StopType.BRAKE)
 raise_claw_cmd.add_output_ready(direct_command.OutputPort.PORT_B)
+raise_claw_cmd.add_keep_alive()
 
 
 lower_claw_cmd = direct_command.DirectCommand()
 lower_claw_cmd.add_output_step_speed(direct_command.OutputPort.PORT_B,
                                             15,
-                                            10,
-                                            40,
+                                            0,
+                                            20,
                                             10,
                                             direct_command.StopType.BRAKE)
 lower_claw_cmd.add_output_ready(direct_command.OutputPort.PORT_B)
+lower_claw_cmd.add_keep_alive()
 
 
 swivel_left_cmd = direct_command.DirectCommand()
 swivel_left_cmd.add_output_step_speed(direct_command.OutputPort.PORT_C,
                                             -15,
-                                            10,
-                                            50,
+                                            0,
+                                            20,
                                             10,
                                             direct_command.StopType.BRAKE)
 swivel_left_cmd.add_output_ready(direct_command.OutputPort.PORT_C)
+swivel_left_cmd.add_keep_alive()
 
 
 swivel_right_cmd = direct_command.DirectCommand()
 swivel_right_cmd.add_output_step_speed(direct_command.OutputPort.PORT_C,
                                             15,
-                                            10,
-                                            50,
+                                            0,
+                                            20,
                                             10,
                                             direct_command.StopType.BRAKE)
 swivel_right_cmd.add_output_ready(direct_command.OutputPort.PORT_C)
+swivel_right_cmd.add_keep_alive()
 
 
 if ("__main__" == __name__):
     with ev3.EV3() as brick:
         print "Connection opened (press 'q' to quit)."
 
-        brick.keep_alive()
-
         while (True):
             c = getch()
 
             if ('c' == c):
+                print 'Opening claw.'
                 open_claw_cmd.send(brick)
             elif ('v' == c):
+                print 'Closing claw.'
                 close_claw_cmd.send(brick)
             elif ('w' == c):
+                print 'Raising claw.'
                 raise_claw_cmd.send(brick)
             elif ('s' == c):
+                print 'Lowering claw.'
                 lower_claw_cmd.send(brick)
             elif ('a' == c):
+                print 'Swivel left.'
                 swivel_left_cmd.send(brick)
             elif ('d' == c):
+                print 'Swivel right.'
                 swivel_right_cmd.send(brick)
             elif ('q' == c):
                 break
